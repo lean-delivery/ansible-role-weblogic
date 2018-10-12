@@ -1,0 +1,108 @@
+{% if ansible_facts.service_mgr in ("upstart", "sysvinit" ) %}
+#!/bin/bash
+#
+# Weblogic Admin server
+#
+# chkconfig: - 35 98 03
+# description: Weblogic Admin server
+
+# source function library
+. /etc/rc.d/init.d/functions
+
+SERVICE={{ domain.service }}
+USER={{ wls_user }}
+PIDFILE="{{ pid_dir }}/$SERVICE.pid"
+LOCKFILE="/var/lock/subsys/$SERVICE"
+
+start() {
+  echo -n $"Starting $SERVICE:"
+  if [ -e $LOCKFILE ]; then
+    if [ -e $PIDFILE ] && [ -e /proc/`cat $PIDFILE` ]; then
+      echo -n $"cannot start $SERVICE: $SERVICE is already running."
+      failure $"cannot start $SERVICE: $SERVICE is already running."
+      echo
+      return 1
+    fi
+  fi
+  su - $USER -c "{{ domain_home }}/startWebLogic.sh > /dev/null 2>&1 &" && success || failure
+  sleep 1
+  echo `ps -ef | grep -i weblogic.Name={{ domain.server }} | grep -v grep | awk {'print $2'} | head -1` > $PIDFILE
+  RETVAL=$?
+  echo
+  [ $RETVAL -eq 0 ] && touch $LOCKFILE
+  return $RETVAL
+}
+
+stop() {
+  echo -n $"Stopping $SERVICE:"
+  if [ ! -e $LOCKFILE ]; then
+    echo -n $"cannot stop $SERVICE: $SERVICE is not running."
+    failure $"cannot stop $SERVICE: $SERVICE is not running."
+    echo
+    return 1
+  fi
+
+  su - $USER -c "{{ domain_home }}/bin/stopWebLogic.sh > /dev/null"  # Try to stop the server
+
+  # ------ begin optional section to ensure process is killed ----
+  count=0
+  killflags=(HUP TERM KILL)
+  killflag=0
+  timeout=30
+  # If the process isn't dead, wait a second, check again
+  while [ `pidofproc -p $PIDFILE` ] && [ $count -lt $timeout ]; do
+    sleep 1
+    count=`expr $count + 1`  # Increment count
+    # If it's still not dead after $timeout
+    if [ $count -eq $timeout ] && [ $killflag -lt 3 ]; then
+      pid=`pidofproc -p $PIDFILE`  # Get the parent PID
+      # Get all child processes
+      for child in $(ps -eo pid,ppid | awk "{ if ( \$2 == $pid ) { print \$1 }}"); do
+        kill -${killflags[$killflag]} $child  # Manually kill any child processes
+      done
+      killflag=`expr $killflag + 1`  # Go to the next kill flag
+      count=0  # Reset the count
+    fi
+  done
+  # ------ end optional section to ensure process is killed ------
+
+  # Check to see whether the process is still running
+  [ `pidofproc -p $PIDFILE` ] && failure || success
+  RETVAL=$?
+  echo
+  [ $RETVAL -eq 0 ] && rm -f $LOCKFILE $PIDFILE
+  return $RETVAL
+}
+
+case "$1" in
+        start)
+                start
+                ;;
+        stop)
+                stop
+                ;;
+        restart)
+                stop
+                start
+                ;;
+        status)
+                status -p $PIDFILE $SERVICE
+                ;;
+        *)
+                echo $"Usage: $0 {start|stop|status|restart}"
+esac
+{% elif ansible_facts.service_mgr == "systemd" %}
+[Unit]
+Description=Weblogic Admin Server
+
+[Service]
+ExecStart={{ domain_home }}/startWebLogic.sh
+ExecStop={{ domain_home }}/bin/stopWebLogic.sh
+TimeoutSec=300
+PIDFile={{ pid_dir }}/{{ domain.service }}.pid
+User={{ wls_user }} 
+Group={{ wls_group }}
+
+[Install]
+WantedBy=multi-user.target
+{% endif %}

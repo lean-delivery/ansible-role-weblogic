@@ -1,0 +1,40 @@
+---
+- name: "Check swapfile"
+  stat:
+    path: "{{ swapfile_path }}"
+  register: swapfile
+
+- name: "Create swapfile section"
+  block:
+
+    - name: "Unmount swap"
+      mount:
+        name: "swap"
+        src: "{{ swapfile_path }}"
+        fstype: "swap"
+        state: "unmounted"
+
+    - name: "Create swapfile"
+      command: "dd if=/dev/zero of={{ swapfile_path }} bs={{ swapfile_bs_size_mb }}M \
+        count={{ swapfile_count }}"
+      when: swapfile.stat.exists == False
+
+    - name: "Set swapfile permissions"
+      file:
+        path: "{{ swapfile_path }}"
+        mode: "0600"
+
+    - name: "Make swap"
+      command: "/sbin/mkswap {{ swapfile_path }}"
+
+    - name: "Swap on"
+      command: "/sbin/swapon {{ swapfile_path }}"
+
+    - name: "Add swap to /etc/fstab"
+      lineinfile:
+        dest: "/etc/fstab"
+        line: "{{ swapfile_path }} swap swap 0 0"
+        state: "present"
+
+  become: True
+  when: swapfile.stat.exists == False

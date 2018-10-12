@@ -1,0 +1,21 @@
+---
+- name: "Get content of the file"
+  slurp:
+    src: "{{ ora_inst }}"
+  register: read_ora
+
+- name: "Read config"
+  set_fact:
+    ora_inst_content: "{{ read_ora['content'] | b64decode }}"
+
+- name: "Get value of install_group"
+  set_fact:
+    install_group: "{{ item.split('=').1 }}"
+  with_items: "{{ ora_inst_content.splitlines() }}"
+  when: item.split('=').0 == "inst_group"
+
+- name: "Get value of inventory_loc"
+  set_fact:
+    inventory_directory: "{{ item.split('=').1 }}"
+  with_items: "{{ ora_inst_content }}"
+  when: item.split('=').0 == "inventory_loc"

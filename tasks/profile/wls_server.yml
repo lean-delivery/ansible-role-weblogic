@@ -1,0 +1,14 @@
+---
+- name: "Read WebLogic directory"
+  find:
+    paths: "{{ wls_path }}"
+    file_type: "directory"
+    patterns: "wlserver*"
+    use_regex: True
+  become: True
+  register: wls_install_dir
+
+- name: "Set wlserver directory"
+  set_fact:
+    wls_server: "{{ wls_install_dir.files[0].path }}"
+  when: wls_install_dir.matched == True

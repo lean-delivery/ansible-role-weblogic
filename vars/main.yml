@@ -1,0 +1,13 @@
+---
+wls_requirements:
+  - "unzip"
+  - "policycoreutils-python"
+  - "libsemanage-python"
+  - "libselinux-python"
+
+# source files with java variables
+java_profile: "/etc/profile.d/java.sh"
+
+domain_home: "{{ wls_path }}/user_projects/domains/{{ domain.name }}"
+
+pid_dir: "/var/run/weblogic"

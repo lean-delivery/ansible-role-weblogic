@@ -1,0 +1,39 @@
+{% if wls_version.split('.')[0] | int >= 12 and not ( wls_version.split('.')[0] | int == 12 and wls_version.split('.')[1] | int <= 1 ) %}
+# Load the template. Versions >= 12.2
+selectTemplate('Basic WebLogic Server Domain')
+loadTemplates()
+
+{% elif wls_version.split('.')[0] | int == 12 and wls_version.split('.')[1] | int == 1 and wls_version.split('.')[2] | int >= 2 %}
+readTemplate('{{ wls_server }}/common/templates/wls/wls.jar')
+
+{% else %}
+# Load the template. Versions < 12.2
+readTemplate('{{ wls_server }}/common/templates/domains/wls.jar')
+
+{% endif %}
+
+# AdminServer settings.
+cd('/Security/{{ domain.name }}/User/{{ domain.user }}')
+cmo.setPassword('{{ domain.password }}')
+cd('/Server/{{ domain.server }}')
+cmo.setName('{{ domain.server }}')
+cmo.setListenPort(int('{{ domain.port }}'))
+cmo.setListenAddress('')
+
+{% if domain.ssl == True %}
+# Enable SSL. Attach the keystore later.
+create('{{ domain.server }}','SSL')
+cd('SSL/{{ domain.server }}')
+set('Enabled', 'True')
+set('ListenPort', int('{{ domain.ssl_port }}'))
+{% endif %}
+
+# If the domain already exists, overwrite the domain
+setOption('OverwriteDomain', 'true')
+
+setOption('ServerStartMode','{{ domain.start_mode }}')
+setOption('AppDir', '{{ domain_home }}')
+
+writeDomain('{{ domain_home }}')
+closeTemplate()
+exit()

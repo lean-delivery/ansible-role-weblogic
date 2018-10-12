@@ -1,0 +1,7 @@
+---
+- name: "Restart Node Manager"
+  service:
+   name: "{{ node_manager.service }}"
+   enabled: True
+   state: "restarted"
+  become: True

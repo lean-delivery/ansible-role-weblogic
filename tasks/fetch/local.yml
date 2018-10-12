@@ -1,0 +1,4 @@
+---
+- name: "Artifact stored localy"
+  set_fact:
+    wls_artifact: "{{ transport_local }}"

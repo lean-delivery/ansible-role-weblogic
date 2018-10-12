@@ -1,0 +1,80 @@
+---
+- name: "Check installed WebLogic version"
+  block:
+
+    - name: "Check wlsserver directory exists"
+      include_tasks: "profile/wls_server.yml"
+
+    - name: "Check product.properties file"
+      stat:
+        path: "{{ wls_server }}/.product.properties"
+      become: True
+      register: products_file
+      when: wls_server is defined
+
+    - name: "Set products_props"
+      set_fact:
+        products_props: "{{ wls_server }}/.product.properties"
+      when: products_file.stat.exists == True
+
+    - name: "Read content of {{ products_props }}"
+      slurp:
+        src: "{{ products_props }}"
+      become: True
+      register: wls_products_file
+      when: products_props is defined
+
+    - name: "Set product_properties"
+      set_fact:
+        product_properties: "{{ wls_products_file['content'] | b64decode }}"
+      when: wls_products_file is defined
+
+    - name: "Check installed WebLogic version"
+      set_fact:
+        wls_installed: True
+      with_items: "{{ product_properties.splitlines() }}"
+      when: product_properties is defined and item == "WLS_PRODUCT_VERSION={{ wls_version }}"
+
+  when: |
+    wls_version.split('.')[0] | int <= 10 or
+    ( wls_version.split('.')[0] | int == 12 and
+    wls_version.split('.')[1] | int == 1 and wls_version.split('.')[2] | int <= 1 )
+
+- name: "Check installed WebLogic version"
+  block:
+
+    - name: "Check install.properties file"
+      stat:
+        path: "{{ wls_path }}/oui/mw/wls/metadata/install.properties"
+      become: True
+      register: install_file
+
+    - name: "Set install_props"
+      set_fact:
+        install_props: "{{ wls_path }}/oui/mw/wls/metadata/install.properties"
+      when: install_file.stat.exists == True
+
+    - name: "Read content of {{ install_props }}"
+      slurp:
+        src: "{{ install_props }}"
+      become: True
+      register: wls_install_info_file
+      when: install_props is defined
+
+    - name: "Set install_properties"
+      set_fact:
+        install_properties: "{{ wls_install_info_file['content'] | b64decode }}"
+      when: wls_install_info_file is defined
+
+    - name: "Check installed WebLogic version"
+      set_fact:
+        wls_installed: True
+      with_items: "{{ install_properties.splitlines() }}"
+      when: |
+        install_properties is defined and
+        item == "oracle.install.engine.release.version={{ wls_version }}"
+
+  when: |
+    wls_version.split('.')[0] | int >= 12 and not
+    ( wls_version.split('.')[0] | int == 12 and
+    wls_version.split('.')[1] | int == 1 and wls_version.split('.')[2] | int <= 1 )

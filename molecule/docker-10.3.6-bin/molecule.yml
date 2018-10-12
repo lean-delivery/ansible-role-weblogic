@@ -1,0 +1,35 @@
+---
+dependency:
+  name: galaxy
+  options:
+    role-file: requirements.yml
+driver:
+  name: docker
+lint:
+  name: yamllint
+  options:
+    config-file: .yamllint
+platforms:
+  - name: test-docker-centos7-weblogic-10.3.6-bin
+    image: leandelivery/docker-systemd:centos7
+    privileged: True
+    groups:
+      - rhel_family
+  - name: test-docker-centos6-weblogic-10.3.6-bin
+    image: centos:6
+    privileged: True
+    groups:
+      - rhel_family
+provisioner:
+  name: ansible
+  lint:
+    name: ansible-lint
+scenario:
+  name: docker-10.3.6-bin
+verifier:
+  name: testinfra
+  options:
+    verbose: true
+  directory: ../resources/tests/
+  lint:
+    name: flake8

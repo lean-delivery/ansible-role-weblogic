@@ -1,0 +1,93 @@
+---
+- name: "Read wlsserver directory"
+  include_tasks: "profile/wls_server.yml"
+
+- name: "Create template for installing WebLogic domain"
+  template:
+    src: "create_domain.py.j2"
+    dest: "{{ download_path }}/create_domain.py"
+  register: wls_domain_install
+
+- name: "Set path to wlst.sh"
+  set_fact:
+    wlst_sh: "{{ wls_server }}/common/bin/wlst.sh"
+  when: |
+    wls_version.split('.')[0] | int <= 10 or
+    ( wls_version.split('.')[0] | int == 12 and wls_version.split('.')[1] | int <= 1 )
+
+- name: "Set path to wlst.sh"
+  set_fact:
+    wlst_sh: "{{ wls_path }}/oracle_common/common/bin/wlst.sh"
+  when: |
+    wls_version.split('.')[0] | int >= 12 and not ( wls_version.split('.')[0] | int == 12 and
+    wls_version.split('.')[1] | int <= 1 )
+
+- name: "Create WebLogic domain"
+  command: "{{ wlst_sh }} {{ wls_domain_install.dest }}"
+  become_user: "{{ wls_user }}"
+  args:
+    creates: "{{ domain_home }}/config"
+  become: True
+
+- name: "Service section"
+  block:
+
+    - name: "Create WebLogic pid directory"
+      file:
+        path: "{{ pid_dir }}"
+        owner: "{{ wls_user }}"
+        group: "{{ wls_group }}"
+        state: "directory"
+
+    - name: "Create WebLogic {{ domain.server }} service in init.d"
+      template:
+        src: "weblogic_service.j2"
+        dest: "/etc/init.d/{{ domain.service }}"
+        mode: "0755"
+      when: ansible_facts.service_mgr in ("upstart", "sysvinit" )
+
+    - name: "Create WebLogic {{ domain.server }} service in systemd"
+      template:
+        src: "weblogic_service.j2"
+        dest: "/etc/systemd/system/{{ domain.service }}.service"
+        mode: "0755"
+      when: ansible_facts.service_mgr == "systemd"
+
+    - name: "Systemd daemon-reload"
+      systemd:
+        daemon_reload: True
+      when: ansible_facts.service_mgr == "systemd"
+
+    - name: "Start {{ domain.server }}"
+      service:
+        name: "{{ domain.service }}"
+        enabled: True
+        state: "started"
+
+  become: True
+
+- name: "Check WebLogic console availability"
+  uri:
+    url: "http://{{ ansible_hostname }}:{{ domain.port }}/console"
+    method: "GET"
+    user: "{{ domain.user }}"
+    password: "{{ domain.password }}"
+    return_content: True
+  register: wls_host
+  until: wls_host.status == 200
+  retries: "30"
+  delay: "15"
+
+- name: "Put weblogic profile"
+  template:
+    src: "weblogic.sh.j2"
+    dest: "/etc/profile.d/weblogic.sh"
+    owner: "root"
+    group: "root"
+    mode: "0555"
+  become: True
+  when: |
+    node_manager.install == True and
+    wls_version.split('.')[0] | int >= 12 and not ( wls_version.split('.')[0] | int == 12 and
+    wls_version.split('.')[1] | int == 1 and wls_version.split('.')[2] | int <= 1 )
+  notify: "Restart Node Manager"

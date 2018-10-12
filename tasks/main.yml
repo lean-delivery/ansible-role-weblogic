@@ -1,0 +1,22 @@
+---
+- name: "Check {{ wls_path }}"
+  stat:
+    path: "{{ wls_path }}"
+  become: True
+  register: wls_root_path
+
+- name: "Set default value for wls_installed"
+  set_fact:
+    wls_installed: False
+
+- name: "Check installed version"
+  include_tasks: "profile/wls_version.yml"
+  when: wls_root_path.stat.exists == True
+
+- name: "Install WebLogic {{ wls_version }}"
+  include_tasks: "install-wls.yml"
+  when: wls_installed == False
+
+- name: "Create WebLogic domain"
+  include_tasks: "create_domain.yml"
+  when: domain.create == True

@@ -1,0 +1,15 @@
+---
+- name: "Download artifact from web"
+  get_url:
+    url: "{{ transport_web }}"
+    dest: "{{ download_path }}"
+  until: "'OK' in file_downloaded.msg"
+  retries: 3
+  delay: 2
+  register: file_downloaded
+  delegate_to: "localhost"
+  connection: "local"
+
+- name: "Downloaded artifact"
+  set_fact:
+    wls_artifact: "{{ file_downloaded.dest }}"
