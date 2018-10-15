@@ -1,7 +1,6 @@
 ---
 # Run all tests
 stages:
-  - lint
   - deployment test
 
 before_script:
@@ -10,17 +9,6 @@ before_script:
 
 variables:
   GET_SOURCES_ATTEMPTS: "5"
-
-Ansible lint:
-  stage: lint
-  before_script:
-    - git clone https://github.com/lean-delivery/ansible-lint-rules.git ~/ansible-lint-rules
-  script:
-    - ansible-lint -c .ansible-lint `find . -regex ".*\.\(yml\)"`
-  after_script:
-    - rm -rf ~/ansible-lint-rules
-  tags:
-    - delegated
 
 Docker weblogic 12.2.1.3:
   stage: deployment test
