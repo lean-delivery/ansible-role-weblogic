@@ -75,8 +75,8 @@
     return_content: True
   register: wls_host
   until: wls_host.status == 200
-  retries: "30"
-  delay: "15"
+  retries: "60"
+  delay: "30"
 
 - name: "Put weblogic profile"
   template:

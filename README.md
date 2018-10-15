@@ -7,7 +7,7 @@ weblogic
 ## Summary
 --------------
 
-This role installs Oracle WebLogic Server on Linux platforms Commerce Content Acquisition System (CAS) on Linux platforms which allows to build and deploy enterprise Java EE applications.
+This role installs Oracle WebLogic Server on Linux platforms which allows to build and deploy enterprise Java EE applications.
 
 
 Requirements
