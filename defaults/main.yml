@@ -1,0 +1,61 @@
+---
+wls_version: "12.2.1.3.0"
+
+# path to install WebLogic
+wls_path: "/opt/weblogic"
+
+# artifact source transport
+transport: "local"
+# available are:
+# - "web" Fetching artifact from custom web uri
+# - "local" Local artifact
+
+transport_local: "/tmp/V886423-01.zip"
+transport_web: "http://my-storage.example.com/V886423-01.zip"
+
+# path to download WebLogic
+download_path: "/tmp"
+
+wls_user: "weblogic"
+wls_group: "weblogic"
+
+# node manager creation
+node_manager:
+  install: True
+  port: "5556"
+  service: "wls-nodemanager"
+
+# domain creation
+domain:
+  create: True
+  name: "base_domain"
+  server: "AdminServer"
+  service: "wls-admin-server"
+  user: "weblogic"
+  password: "welcome0"
+  port: "7001"
+  # available: prod (Production), dev (Development)
+  start_mode: "dev"
+  ssl: False
+  # set if ssl: True
+  ssl_port: "7002"
+
+# installation type, starting from 12.1.2
+# install_type is based on installation executor (jar) file
+install_type: "WebLogic Server"
+# available are:
+# - "WebLogic Server"
+# - "Complete with Examples"
+# - "Coherence"
+# - "Fusion Middleware Infrastructure"
+# - "Fusion Middleware Infrastructure With Examples"
+
+# for Oracle Universal Installer
+install_group: "oinstall"
+inventory_directory: "/opt/oraInventory"
+ora_inst: "/etc/oraInst.loc"
+
+# swap configuration
+swapfile_path: "/swapfile"
+swapfile_bs_size_mb: "1"
+swapfile_count: "514"

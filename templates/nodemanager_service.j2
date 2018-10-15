@@ -1,0 +1,95 @@
+{% if ansible_facts.service_mgr in ("upstart", "sysvinit" ) %}
+#!/bin/bash
+#
+# Weblogic Node Manager
+#
+# chkconfig: - 35 98 03
+# description: Weblogic Node Manager
+
+# source function library
+. /etc/rc.d/init.d/functions
+
+SERVICE={{ node_manager.service }}
+USER={{ wls_user }}
+PIDFILE="{{ pid_dir }}/$SERVICE.pid"
+LOCKFILE="/var/lock/subsys/$SERVICE"
+
+start() {
+  echo -n $"Starting $SERVICE:"
+  if [ -e $LOCKFILE ]; then
+    if [ -e $PIDFILE ] && [ -e /proc/`cat $PIDFILE` ]; then
+      echo -n $"cannot start $SERVICE: $SERVICE is already running."
+      failure $"cannot start $SERVICE: $SERVICE is already running."
+      echo
+      return 1
+    fi
+  fi
+  su - $USER -c "{{ wls_server }}/server/bin/startNodeManager.sh > /dev/null 2>&1 &" && success || failure
+  sleep 1
+  echo `ps -ef | grep -i weblogic.NodeManager | grep -v grep | awk {'print $2'} | head -1` > $PIDFILE
+  RETVAL=$?
+  echo
+  [ $RETVAL -eq 0 ] && touch $LOCKFILE
+  return $RETVAL
+}
+
+stop() {
+
+  echo -n $"Stopping $SERVICE:"
+  if [ ! -e $LOCKFILE ]; then
+    echo -n $"cannot stop $SERVICE: $SERVICE is not running."
+    failure $"cannot stop $SERVICE: $SERVICE is not running."
+    echo
+    return 1
+  fi
+
+  pid=`cat "$PIDFILE"`
+    echo "Killing $SERVICE (pid $pid) with SIGTERM"
+    kill -TERM $pid
+    # Wait for it to exit.
+    for i in 1 2 3 4 5 ; do
+      echo "Waiting $SERVICE (pid $pid) to die..."
+      sleep 1
+    done
+
+
+  # Check to see whether the process is still running
+  [ `pidofproc -p $PIDFILE` ] && failure || success
+  RETVAL=$?
+  echo
+  [ $RETVAL -eq 0 ] && rm -f $LOCKFILE $PIDFILE
+  return $RETVAL
+
+}
+
+case "$1" in
+        start)
+                start
+                ;;
+        stop)
+                stop
+                ;;
+        restart)
+                stop
+                start
+                ;;
+        status)
+                status -p $PIDFILE $SERVICE
+                ;;
+        *)
+                echo $"Usage: $0 {start|stop|status|restart}"
+esac
+{% elif ansible_facts.service_mgr == "systemd" %}
+[Unit]
+Description=Weblogic Node Manager
+
+[Service]
+ExecStart={{ wls_server }}/server/bin/startNodeManager.sh
+TimeoutSec=300
+PIDFile={{ pid_dir }}/{{ node_manager.service }}.pid
+User={{ wls_user }} 
+Group={{ wls_group }}
+
+[Install]
+WantedBy=multi-user.target
+{% endif %}

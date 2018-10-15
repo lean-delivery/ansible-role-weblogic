@@ -1,0 +1,187 @@
+---
+- name: "Fetch WebLogic artifact with {{ transport }} transport"
+  include_tasks: "{{ transport_driver }}"
+  with_first_found:
+    - "fetch/{{ transport }}.yml"
+    - "fetch/unknown-transport.yml"
+  loop_control:
+    loop_var: transport_driver
+
+- name: "Become section"
+  block:
+    - name: "Install requirements"
+      package:
+        name: "{{ package }}"
+        state: "present"
+      loop: "{{ wls_requirements }}"
+      loop_control:
+        loop_var: package
+
+    - name: "Extract WebLogic installer"
+      unarchive:
+        src: "{{ wls_artifact }}"
+        dest: "{{ download_path }}"
+        list_files: True
+      register: wls_installer
+
+    - name: "Create weblogic group"
+      group:
+        name: "{{ wls_group }}"
+        state: "present"
+
+    - name: "Create weblogic user"
+      user:
+        name: "{{ wls_user }}"
+        group: "{{ wls_group }}"
+        state: "present"
+        home: "/home/{{ wls_user }}"
+        createhome: True
+        append: True
+
+    - name: "Create {{ wls_path }} with {{ wls_user }} as owner"
+      file:
+        owner: "{{ wls_user }}"
+        group: "{{ wls_group }}"
+        path: "{{ wls_path }}"
+        state: "directory"
+        mode: "0755"
+        recurse: True
+
+  become: True
+
+- name: "Install WebLogic {{ wls_version }} from binary"
+  block:
+
+    - name: "Read java profile"
+      include_tasks: "profile/java.yml"
+
+    - name: "Create silent install file for WebLogic {{ wls_version }}"
+      template:
+        src: "wls_installer.properties.j2"
+        dest: "{{ download_path }}/wls_installer_{{ wls_version }}.xml"
+      register: wls_silent_install
+
+    - name: "Ensure {{ wls_installer.files[0] }} is executable"
+      file:
+        path: "{{ download_path }}/{{ wls_installer.files[0] }}"
+        owner: "{{ wls_user }}"
+        group: "{{ wls_group }}"
+        mode: "0755"
+
+    - name: "Install WebLogic {{ wls_version }} from bin"
+      command: "{{ download_path }}/{{ wls_installer.files[0] }} \
+      -mode=silent -silent_xml={{ wls_silent_install.dest }}"
+      become_user: "{{ wls_user }}"
+
+  become: True
+  when: |
+    wls_installer.files[0].split(".")[-1] == "bin" and
+    wls_version.split('.')[0] | int <= 10
+
+- name: "Install WebLogic {{ wls_version }} from jar"
+  block:
+
+    - name: "Read java profile"
+      include_tasks: "profile/java.yml"
+
+    - name: "Create silent install file for WebLogic {{ wls_version }}"
+      template:
+        src: "wls_installer.properties.j2"
+        dest: "{{ download_path }}/wls_installer_{{ wls_version }}.xml"
+      register: wls_silent_install
+
+    - name: "Install WebLogic {{ wls_version }} from jar"
+      javax:
+        jar: "{{ download_path }}/{{ wls_installer.files[0] }}"
+        java_args:
+          - "-mode=silent"
+          - "-silent_xml={{ wls_silent_install.dest }}"
+      become_user: "{{ wls_user }}"
+      become: True
+
+  when: |
+    wls_installer.files[0].split(".")[-1] == "jar" and
+    ( wls_version.split('.')[0] | int <= 10 or
+    ( wls_version.split('.')[0] | int == 12 and wls_version.split('.')[1] | int == 1 and
+    wls_version.split('.')[2] | int <= 1 ))
+
+- name: "Install WebLogic Server"
+  block:
+
+    - name: "Check oracle inventory requirements"
+      include_tasks: "ora-inst/check-ora-inst.yml"
+
+    - name: "Create swap file"
+      include_tasks: "system/swap.yml"
+
+    - name: "Create silent install file for WebLogic {{ wls_version }}"
+      template:
+        src: "wls_installer.properties.j2"
+        dest: "{{ download_path }}/wls_installer_{{ wls_version }}.properties"
+      register: wls_silent_install
+
+    - name: "Install WebLogic {{ wls_version }} from jar"
+      javax:
+        jar: "{{ download_path }}/{{ wls_installer.files[0] }}"
+        java_args:
+          - "-silent"
+          - "-responseFile {{ wls_silent_install.dest }}"
+          - "-invPtrLoc {{ ora_inst }}"
+      register: wls_install_out
+      become_user: "{{ wls_user }}"
+      become: True
+
+    - name: "Disable the swap file"
+      command: "/sbin/swapoff {{ swapfile_path }}"
+      become: True
+
+    - name: "Remove {{ swapfile_path }}"
+      file:
+        path: "{{ swapfile_path }}"
+        state: "absent"
+      become: True
+
+  when: |
+    wls_installer.files[0].split(".")[-1] == "jar" and
+    ( wls_version.split('.')[0] | int >= 12 and not ( wls_version.split('.')[0] | int == 12 and
+    wls_version.split('.')[1] | int == 1 and wls_version.split('.')[2] | int <= 1 ))
+
+- name: "Read wlsserver directory"
+  include_tasks: "profile/wls_server.yml"
+
+- name: "Service section"
+  block:
+
+    - name: "Create weblogic pid directory"
+      file:
+        path: "{{ pid_dir }}"
+        owner: "{{ wls_user }}"
+        group: "{{ wls_group }}"
+        state: "directory"
+
+    - name: "Create WebLogic Node Manager service in init.d"
+      template:
+        src: "nodemanager_service.j2"
+        dest: "/etc/init.d/{{ node_manager.service }}"
+        mode: "0755"
+      when: ansible_facts.service_mgr in ("upstart", "sysvinit" )
+
+    - name: "Create WebLogic Node Manager service in systemd"
+      template:
+        src: "nodemanager_service.j2"
+        dest: "/etc/systemd/system/{{ node_manager.service }}.service"
+        mode: "0755"
+      when: ansible_facts.service_mgr == "systemd"
+
+    - name: "Systemd daemon-reload"
+      systemd:
+        daemon_reload: True
+      when: ansible_facts.service_mgr == "systemd"
+
+    - name: "Start Node Manager"
+      service:
+        name: "{{ node_manager.service }}"
+        enabled: True
+        state: "started"
+
+  become: True
