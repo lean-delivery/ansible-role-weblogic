@@ -4,7 +4,6 @@
   roles:
     - role: lean_delivery.java
       java_major_version: 8
-      java_minor_version: 181
     - role: ansible-role-weblogic
       wls_version: "12.2.1.3.0"
       transport: "web"

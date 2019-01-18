@@ -8,3 +8,4 @@
       wls_version: "12.2.1.3.0"
       transport: "web"
       transport_web: "{{ lookup('env','STORAGE_AWS') }}/oracle-commerce-suite/app-servers/weblogic/12.2.1.3.0/V886423-01.zip"
+      swapfile_path: "/swapfile-{{ wls_version }}-{{ ansible_distribution_version }}"

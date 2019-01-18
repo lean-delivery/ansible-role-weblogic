@@ -11,4 +11,4 @@
 - name: "Set wlserver directory"
   set_fact:
     wls_server: "{{ wls_install_dir.files[0].path }}"
-  when: wls_install_dir.matched == True
+  when: wls_install_dir.matched | bool

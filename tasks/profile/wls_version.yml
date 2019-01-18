@@ -15,7 +15,7 @@
     - name: "Set products_props"
       set_fact:
         products_props: "{{ wls_server }}/.product.properties"
-      when: products_file.stat.exists == True
+      when: products_file.stat.exists | bool
 
     - name: "Read content of {{ products_props }}"
       slurp:
@@ -32,8 +32,10 @@
     - name: "Check installed WebLogic version"
       set_fact:
         wls_installed: True
-      with_items: "{{ product_properties.splitlines() }}"
-      when: product_properties is defined and item == "WLS_PRODUCT_VERSION={{ wls_version }}"
+      loop: "{{ product_properties.splitlines() }}"
+      when:
+        - product_properties is defined
+        - item.find("WLS_PRODUCT_VERSION={{ wls_version }}") != -1
 
   when: |
     wls_version.split('.')[0] | int <= 10 or
@@ -52,7 +54,7 @@
     - name: "Set install_props"
       set_fact:
         install_props: "{{ wls_path }}/oui/mw/wls/metadata/install.properties"
-      when: install_file.stat.exists == True
+      when: install_file.stat.exists | bool
 
     - name: "Read content of {{ install_props }}"
       slurp:
@@ -69,10 +71,10 @@
     - name: "Check installed WebLogic version"
       set_fact:
         wls_installed: True
-      with_items: "{{ install_properties.splitlines() }}"
-      when: |
-        install_properties is defined and
-        item == "oracle.install.engine.release.version={{ wls_version }}"
+      loop: "{{ install_properties.splitlines() }}"
+      when:
+        - install_properties is defined
+        - item.find("oracle.install.engine.release.version={{ wls_version }}") != -1
 
   when: |
     wls_version.split('.')[0] | int >= 12 and not

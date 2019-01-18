@@ -17,7 +17,7 @@
     - name: "Create swapfile"
       command: "dd if=/dev/zero of={{ swapfile_path }} bs={{ swapfile_bs_size_mb }}M \
         count={{ swapfile_count }}"
-      when: swapfile.stat.exists == False
+      when: not swapfile.stat.exists | bool
 
     - name: "Set swapfile permissions"
       file:
@@ -37,4 +37,4 @@
         state: "present"
 
   become: True
-  when: swapfile.stat.exists == False
+  when: not swapfile.stat.exists | bool

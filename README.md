@@ -3,6 +3,9 @@ weblogic
 [![License](https://img.shields.io/badge/license-Apache-green.svg?style=flat)](https://raw.githubusercontent.com/lean-delivery/ansible-role-weblogic/master/LICENSE)
 [![Build Status](https://travis-ci.org/lean-delivery/ansible-role-weblogic.svg?branch=master)](https://travis-ci.org/lean-delivery/ansible-role-weblogic)
 [![Build Status](https://gitlab.com/lean-delivery/ansible-role-weblogic/badges/master/build.svg)](https://gitlab.com/lean-delivery/ansible-role-weblogic)
+[![Galaxy](https://img.shields.io/badge/galaxy-lean__delivery.weblogic-blue.svg)](https://galaxy.ansible.com/lean_delivery/weblogic)
+![Ansible](https://img.shields.io/ansible/role/d/30588.svg)
+![Ansible](https://img.shields.io/badge/dynamic/json.svg?label=min_ansible_version&url=https%3A%2F%2Fgalaxy.ansible.com%2Fapi%2Fv1%2Froles%2F30588%2F&query=$.min_ansible_version)
 
 ## Summary
 --------------
@@ -32,9 +35,9 @@ Java should be installed preliminarily:
 For running "java -jar" opensource module `javax` was used (https://github.com/tima/ansible-javax)
 
 ```
-For test scenarios weblogic/requirements.yml is used  
-If another roles/versions are required, put requirements.yml to molecule/<scenario_name> and remove in molecule.yml lines  
-  options:  
+For test scenarios weblogic/requirements.yml is used
+If another roles/versions are required, put requirements.yml to molecule/<scenario_name> and remove in molecule.yml lines
+  options:
     role-file: requirements.yml
 ```
 
@@ -42,7 +45,7 @@ If another roles/versions are required, put requirements.yml to molecule/<scenar
 Role Variables
 --------------
 
-  - `transport` - artifact source transport  
+  - `transport` - artifact source transport
      available:
       - `web` - fetch artifact from custom web uri
       - `local` - local artifact
@@ -50,19 +53,19 @@ Role Variables
   - `transport_web` - URI for http/https artifact  e.g. "http://my-storage.example.com/V886423-01.zip"
   - `transport_local` - path for local artifact e.g. "/tmp/V886423-01.zip"
 
-  - `download_path` - local folder for downloading artifacts  
+  - `download_path` - local folder for downloading artifacts
     default: `/tmp`
 
-  - `wls_user` - user for installing Oracle WebLogic  
+  - `wls_user` - user for installing Oracle WebLogic
     default: `weblogic`
-  - `wls_group` - group for weblogic user  
+  - `wls_group` - group for weblogic user
     default: `weblogic`
 
   - `wls_version` - Oracle WebLogic version
 
 #### Set WebLogic version as it's defined in official Oracle Documentation
 
-  - `wls_path` - where WebLogic should be installed  
+  - `wls_path` - where WebLogic should be installed
     default: `/opt/weblogic`
 
 #### Parameters for creating Node Manager
@@ -122,32 +125,32 @@ domain:
 
 #### Parameters for WebLogic versions starting from 12.1.2
 
-  - `install_type` - installation type, based on installation executor (jar) file  
-    available:  
+  - `install_type` - installation type, based on installation executor (jar) file
+    available:
       - `WebLogic Server`
       - `Complete with Examples`
       - `Coherence`
       - `Fusion Middleware Infrastructure`
       - `Fusion Middleware Infrastructure With Examples`
 
-  - `install_group` - install group for user  
+  - `install_group` - install group for user
     default: `oinstall`
 
-  - `inventory_directory` - path to oracle inventory directory  
+  - `inventory_directory` - path to oracle inventory directory
     default: `/opt/oraInventory`
 
-  - `ora_inst` - path to oraInst.loc file  
+  - `ora_inst` - path to oraInst.loc file
     default: `/etc/oraInst.loc`
 
 ##### Swap configuration
 
-  - `swapfile_path` - path to swap file  
+  - `swapfile_path` - path to swap file
     default: `/swapfile`
 
-  - `swapfile_bs_size_mb`  
+  - `swapfile_bs_size_mb`
     default: `1`
 
-  - `swapfile_count` - swap size  
+  - `swapfile_count` - swap size
     default: `514`
 
 

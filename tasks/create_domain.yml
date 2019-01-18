@@ -11,16 +11,12 @@
 - name: "Set path to wlst.sh"
   set_fact:
     wlst_sh: "{{ wls_server }}/common/bin/wlst.sh"
-  when: |
-    wls_version.split('.')[0] | int <= 10 or
-    ( wls_version.split('.')[0] | int == 12 and wls_version.split('.')[1] | int <= 1 )
+  when: wls_version is version('12.1.1.0', '<=')
 
 - name: "Set path to wlst.sh"
   set_fact:
     wlst_sh: "{{ wls_path }}/oracle_common/common/bin/wlst.sh"
-  when: |
-    wls_version.split('.')[0] | int >= 12 and not ( wls_version.split('.')[0] | int == 12 and
-    wls_version.split('.')[1] | int <= 1 )
+  when: wls_version is version('12.1.2.0.0', '>=')
 
 - name: "Create WebLogic domain"
   command: "{{ wlst_sh }} {{ wls_domain_install.dest }}"
@@ -75,7 +71,7 @@
     return_content: True
   register: wls_host
   until: wls_host.status == 200
-  retries: "60"
+  retries: "120"
   delay: "30"
 
 - name: "Put weblogic profile"
@@ -86,8 +82,7 @@
     group: "root"
     mode: "0555"
   become: True
-  when: |
-    node_manager.install == True and
-    wls_version.split('.')[0] | int >= 12 and not ( wls_version.split('.')[0] | int == 12 and
-    wls_version.split('.')[1] | int == 1 and wls_version.split('.')[2] | int <= 1 )
+  when:
+    - node_manager.install | bool
+    - wls_version is version('12.1.2.0.0', '>=')
   notify: "Restart Node Manager"

@@ -1,42 +1,62 @@
 ---
 # Run all tests
 stages:
+  - lint
   - deployment test
 
 before_script:
   - ansible --version
   - molecule --version
+#  - ansible-config dump --only-changed
 
 variables:
   GET_SOURCES_ATTEMPTS: "5"
 
-Docker weblogic 12.2.1.3:
+Ansible lint:
+  stage: lint
+  before_script:
+    - git clone https://github.com/lean-delivery/ansible-lint-rules.git ~/ansible-lint-rules
+  script:
+    - ansible-lint . -c .ansible-lint
+  after_script:
+    - rm -rf ~/ansible-lint-rules
+  tags:
+    - delegated
+
+Docker weblogic 12.2.1.3 centos6:
   stage: deployment test
   script:
-    - molecule test -s docker-12.2.1.3
+    - molecule test -s docker-centos6-12.2.1.3
   tags:
-    - docker
+    - aws
+
+Docker weblogic 12.2.1.3 centos7:
+  stage: deployment test
+  script:
+    - molecule test -s docker-centos7-12.2.1.3
+  tags:
+    - aws
 
 Docker weblogic 12.1.2:
   stage: deployment test
   script:
     - molecule test -s docker-12.1.2
   tags:
-    - docker
+    - aws
 
 Docker weblogic 12.1.1:
   stage: deployment test
   script:
     - molecule test -s docker-12.1.1
   tags:
-    - docker
+    - aws
 
 Docker weblogic 10.3.6 jar:
   stage: deployment test
   script:
     - molecule test -s docker-10.3.6-jar
   tags:
-    - docker
+    - aws
 
 Docker weblogic 10.3.6 bin:
   stage: deployment test
@@ -47,6 +67,15 @@ Docker weblogic 10.3.6 bin:
 
 AWS weblogic 12.2.1.3:
   variables:
+    AWS_REGION: us-east-1
+  stage: deployment test
+  script:
+    - molecule test -s cloud-aws-direct-12.2.1.3
+  tags:
+    - aws
+
+.AWS weblogic 12.2.1.3:
+  variables:
     EPC_REGION: AWS-EUCENTRAL
   stage: deployment test
   script:
@@ -54,7 +83,7 @@ AWS weblogic 12.2.1.3:
   tags:
     - delegated
 
-EPC weblogic 12.2.1.3:
+.EPC weblogic 12.2.1.3:
   variables:
     EPC_REGION: EPAM-BY2
   stage: deployment test

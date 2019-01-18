@@ -11,11 +11,12 @@
   block:
     - name: "Install requirements"
       package:
-        name: "{{ package }}"
+        name: "{{ wls_requirements }}"
         state: "present"
-      loop: "{{ wls_requirements }}"
-      loop_control:
-        loop_var: package
+      register: status
+      retries: 10
+      delay: 2
+      until: status is succeeded
 
     - name: "Extract WebLogic installer"
       unarchive:
@@ -72,11 +73,11 @@
       command: "{{ download_path }}/{{ wls_installer.files[0] }} \
       -mode=silent -silent_xml={{ wls_silent_install.dest }}"
       become_user: "{{ wls_user }}"
+      become: True
 
-  become: True
-  when: |
-    wls_installer.files[0].split(".")[-1] == "bin" and
-    wls_version.split('.')[0] | int <= 10
+  when:
+    - wls_installer.files[0].split(".")[-1] == "bin"
+    - wls_version is version('10.3.6.0', '<=')
 
 - name: "Install WebLogic {{ wls_version }} from jar"
   block:
@@ -99,11 +100,9 @@
       become_user: "{{ wls_user }}"
       become: True
 
-  when: |
-    wls_installer.files[0].split(".")[-1] == "jar" and
-    ( wls_version.split('.')[0] | int <= 10 or
-    ( wls_version.split('.')[0] | int == 12 and wls_version.split('.')[1] | int == 1 and
-    wls_version.split('.')[2] | int <= 1 ))
+  when:
+    - wls_installer.files[0].split(".")[-1] == "jar"
+    - wls_version is version('12.1.1.0', '<=')
 
 - name: "Install WebLogic Server"
   block:
@@ -141,10 +140,9 @@
         state: "absent"
       become: True
 
-  when: |
-    wls_installer.files[0].split(".")[-1] == "jar" and
-    ( wls_version.split('.')[0] | int >= 12 and not ( wls_version.split('.')[0] | int == 12 and
-    wls_version.split('.')[1] | int == 1 and wls_version.split('.')[2] | int <= 1 ))
+  when:
+    - wls_installer.files[0].split(".")[-1] == "jar"
+    - wls_version is version('12.1.2.0.0', '>=')
 
 - name: "Read wlsserver directory"
   include_tasks: "profile/wls_server.yml"

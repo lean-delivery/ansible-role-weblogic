@@ -6,21 +6,21 @@
 
 - name: "Read {{ ora_inst }} content"
   include_tasks: "read-ora.yml"
-  when: ora_file.stat.exists == True
+  when: ora_file.stat.exists | bool
 
 - name: "Create {{ ora_inst }}"
   template:
     src: "oraInst.loc.j2"
     dest: "{{ ora_inst }}"
   become: True
-  when: ora_file.stat.exists == False
+  when: not ora_file.stat.exists | bool
 
 - name: "Create oinstall group"
   group:
     name: "{{ install_group }}"
     state: "present"
   become: True
-  when: ora_file.stat.exists == False
+  when: not ora_file.stat.exists | bool
 
 - name: "Add {{ wls_user }} to {{ install_group }}"
   user:
@@ -44,4 +44,4 @@
     group: "{{ install_group }}"
     mode: "0774"
   become: True
-  when: inventory.stat.exists == False
+  when: not inventory.stat.exists | bool

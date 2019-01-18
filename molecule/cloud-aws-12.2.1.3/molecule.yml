@@ -10,22 +10,23 @@ lint:
   options:
     config-file: .yamllint
 platforms:
-  - name: test-aws-centos7-weblogic-12.2.1.3
+  - name: test-aws-centos7-weblogic-12-2-1-3
     image: CentOS7_64-bit
     shape: small
     region: AWS-EUCENTRAL
     wait_timeout: 1800
     groups:
       - rhel_family
-  - name: test-aws-cenots6-weblogic-12.2.1.3
-    image: CentOS6_64-bit
-    shape: small
-    region: AWS-EUCENTRAL
-    wait_timeout: 1800
-    groups:
-      - rhel_family
+  # - name: test-aws-cenots6-weblogic-12.2.1.3
+  #   image: CentOS6_64-bit
+  #   shape: small
+  #   region: AWS-EUCENTRAL
+  #   wait_timeout: 1800
+  #   groups:
+  #     - rhel_family
 provisioner:
   name: ansible
+  # log: True
   playbooks:
     create: ../resources/provisioning/create.yml
     prepare: ../resources/provisioning/prepare.yml

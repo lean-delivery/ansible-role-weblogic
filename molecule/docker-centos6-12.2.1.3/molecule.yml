@@ -10,11 +10,6 @@ lint:
   options:
     config-file: .yamllint
 platforms:
-  - name: test-docker-centos7-weblogic-12-2-1-3
-    image: leandelivery/docker-systemd:centos7
-    privileged: True
-    groups:
-      - rhel_family
   - name: test-docker-centos6-weblogic-12-2-1-3
     image: centos:6
     privileged: True
@@ -26,7 +21,7 @@ provisioner:
   lint:
     name: ansible-lint
 scenario:
-  name: docker-12.2.1.3
+  name: docker-centos6-12.2.1.3
 verifier:
   name: testinfra
   options:

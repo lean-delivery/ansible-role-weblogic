@@ -11,12 +11,12 @@
 
 - name: "Check installed version"
   include_tasks: "profile/wls_version.yml"
-  when: wls_root_path.stat.exists == True
+  when: wls_root_path.stat.exists | bool
 
 - name: "Install WebLogic {{ wls_version }}"
   include_tasks: "install-wls.yml"
-  when: wls_installed == False
+  when: not wls_installed | bool
 
 - name: "Create WebLogic domain"
   include_tasks: "create_domain.yml"
-  when: domain.create == True
+  when: domain.create | bool
